@@ -7,6 +7,10 @@
 #include <thread>
 
 #include <semiprof/semiprof.hpp>
+#include <iostream> //jg: std::cout
+#include <sstream>  //jg: std::ostringstream
+#include <mpi.h> //jg
+
 
 namespace semiprof {
 
@@ -122,6 +126,7 @@ public:
     const std::vector<std::string>& regions() const;
     region_id_type region_index(const char* name);
     profile results() const;
+    void results_sphexa() const;
 
     static profiler& get_global_profiler() {
         static profiler p;
@@ -268,6 +273,30 @@ profile profiler::results() const {
     return p;
 }
 
+void profiler::results_sphexa() const {
+    using std::chrono::duration_cast;
+    using std::chrono::nanoseconds;
+    int rank;
+    // MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    const auto nregions = region_names_.size();
+    profile p;
+    p.names = region_names_;
+    const auto num_threads = get_thread_info().num_threads;
+    // recorders_[$tid].accumulators()[$region].time
+    for (auto tid=0u; tid<num_threads; ++tid) {
+        auto& r = recorders_[tid];
+        auto& accumulators = r.accumulators();
+        std::ostringstream regions_timings_buffer;
+        for (auto i=0u; i<accumulators.size(); ++i) {
+            auto time_in_ns = duration_cast<nanoseconds>(accumulators[i].time).count();
+            regions_timings_buffer << time_in_ns << ",";
+        }
+        std::cout << "# " << rank << "," << tid << "," << regions_timings_buffer.str() << "\n";
+    }
+    // return p;
+}
+
 profile_node make_profile_tree(const profile& p) {
     // Take the name of each region, and split into a sequence of sub-region-strings.
     // e.g. "advance_integrate_state" -> "advance", "integrate", "state"
@@ -382,6 +411,10 @@ std::ostream& operator<<(std::ostream& o, const profile& prof) {
 
 profile profiler_summary() {
     return profiler::get_global_profiler().results();
+}
+
+void profiler_summary_sphexa() {
+    profiler::get_global_profiler().results_sphexa();
 }
 
 #else
