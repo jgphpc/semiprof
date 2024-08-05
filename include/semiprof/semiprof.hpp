@@ -30,6 +30,7 @@ void profiler_enter(std::size_t region_id);
 void profiler_leave();
 
 profile profiler_summary();
+void profiler_summary_sphexa();
 std::size_t profiler_region_id(const char* name);
 
 std::ostream& operator<<(std::ostream&, const profile&);

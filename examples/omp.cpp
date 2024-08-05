@@ -12,7 +12,8 @@ int main() {
               << "-----------------------\n\n";
 
 
-    const size_t n = 1<<28;
+    const size_t n = 1<<26;
+    // const size_t n = 1<<28;
 
     std::vector<double> a(n);
     std::vector<double> b(n);
